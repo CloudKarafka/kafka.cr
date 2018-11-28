@@ -2,6 +2,7 @@ require "./config.cr"
 
 module Kafka
   class Consumer
+    ERRLEN = 128
     def initialize(@conf : Config)
       @closing = false
       @pErrStr = LibC.malloc(ERRLEN).as(UInt8*)
