@@ -12,7 +12,8 @@ lib LibKafkaC
   fun version = rd_kafka_version() : Int32
   fun version_str = rd_kafka_version_str() : UInt8*
 
-  alias KafkaHandle = Void *
+  alias KafkaError = Int32
+  alias KafkaHandle = Void*
   alias ConfHandle = Void *
   alias Topic = Void *
   alias TopicConf = Void *
@@ -28,15 +29,15 @@ lib LibKafkaC
   OK = 0
   RD_KAFKA_RESP_ERR_NO_ERROR = 0
 
-MSG_FLAG_FREE = 0x1    # Delegate freeing of payload to rdkafka
-MSG_FLAG_COPY = 0x2    # rdkafka will make a copy of the payload.
-MSG_FLAG_BLOCK = 0x4   # Block produce*() on message queue full
+  MSG_FLAG_FREE = 0x1    # Delegate freeing of payload to rdkafka
+  MSG_FLAG_COPY = 0x2    # rdkafka will make a copy of the payload.
+  MSG_FLAG_BLOCK = 0x4   # Block produce*() on message queue full
 
-OFFSET_BEGINNING = -2_i64  # /**< Start consuming from beginning of
-OFFSET_END       = -1_i64  # /**< Start consuming from end of kafka
+  OFFSET_BEGINNING = -2_i64  # /**< Start consuming from beginning of
+  OFFSET_END       = -1_i64  # /**< Start consuming from end of kafka
 
 
-PARTITION_UNASSIGNED = -1
+  PARTITION_UNASSIGNED = -1
 
   enum Event
     NONE = 0    # None
@@ -75,6 +76,15 @@ PARTITION_UNASSIGNED = -1
     size: Int32
     elems: TopicPartition*
   end
+
+  struct Metadata
+    broker_cnt: LibC::Int
+    brokers: UInt8*
+    topic_count: LibC::Int
+    topics: Void*
+    orig_broker_id: Int32
+    orig_broker_name: Char*
+  end
   
 struct Message
   err : Int32 #rd_kafka_resp_err_t err;   /**< Non-zero for error signaling. */
@@ -104,6 +114,13 @@ end
 
   fun conf_set_dr_msg_cb = rd_kafka_conf_set_dr_msg_cb(conf: ConfHandle, cb: (KafkaHandle, Void*, Void* ) -> )
 
+  fun metadata = rd_kafka_metadata(h: KafkaHandle,
+                                   all_topics: Int32,
+                                   topic: Topic,
+                                   metadata: Metadata**,
+                                   timeout: Int32) : KafkaError
+  fun metadata_destroy = rd_kafka_metadata_destroy(md: Metadata*)
+        
   fun topic_conf_new = rd_kafka_topic_conf_new : TopicConf
   fun topic_conf_destroy = rd_kafka_topic_conf_destroy(tc : TopicConf)
   fun conf_set_default_topic_conf = rd_kafka_conf_set_default_topic_conf(conf: ConfHandle, tc: TopicConf) : Int32
