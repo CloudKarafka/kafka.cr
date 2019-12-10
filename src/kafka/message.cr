@@ -8,22 +8,19 @@ module Kafka
   end
 
   class Message
-
-    def initialize(@msg : LibKafkaC::Message*)
+    def initialize(@msg : LibKafkaC::Message)
     end
 
+    def err : Int32
+      @msg.err
+    end
+    
     def payload : Bytes
-      tmp = @msg.value
-      Bytes.new(tmp.payload, tmp.len)
+      Bytes.new(@msg.payload, @msg.len)
     end
 
     def key : Bytes
-      tmp = @msg.value
-      Bytes.new(tmp.key, tmp.key_len)
-    end
-
-    def finalize()
-      LibKafkaC.message_destroy(@msg)
+      Bytes.new(@msg.key, @msg.key_len)
     end
   end
 

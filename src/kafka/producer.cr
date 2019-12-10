@@ -1,5 +1,4 @@
 require "./lib_rdkafka.cr"
-require "./config.cr"
 
 module Kafka
   class Producer < Client
@@ -9,23 +8,23 @@ module Kafka
       super(conf, LibKafkaC::TYPE_PRODUCER)
       @polling = false
       @keep_running = true
-
       cb = ->(h : LibKafkaC::KafkaHandle, x : Void*, y : Void*) {
-        puts "CB #{x}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        puts "CB #{x}"
       }
-
-      puts "SETS CB"
       LibKafkaC.conf_set_dr_msg_cb(@conf, cb)
-
     end
 
-    def produce_simple(topic : String, key : Array(UInt8), msg : Array(UInt8))
+    def produce(topic : String, key : Array(UInt8), msg : Array(UInt8))
+      produce0(topic, key, msg)
+    end
+
+    def produce0(topic : String, key : Array(UInt8), msg : Array(UInt8))
       rkt = LibKafkaC.topic_new(@handle, topic, nil)
       part = LibKafkaC::PARTITION_UNASSIGNED
       flags = LibKafkaC::MSG_FLAG_COPY
       err = LibKafkaC.produce(rkt, part, flags, msg, msg.size,
                               key, key.size, nil)
-      raise KafkaProducerException.new(err, String.new(LibKafkaC.err2str(err))) if err != LibKafkaC::OK
+      raise KafkaProducerException.new(err) if err != LibKafkaC::OK
       LibKafkaC.topic_destroy(rkt)
     end
 
@@ -38,7 +37,7 @@ module Kafka
                                 t[:msg], t[:msg].size,
                                 t[:key], t[:key].size,
                                 nil)
-        raise KafkaProducerException.new(err, String.new(LibKafkaC.err2str(err))) if err != LibKafkaC::OK
+        raise KafkaProducerException.new(err) if err != LibKafkaC::OK
       end
       LibKafkaC.poll(@handle, 500)
       LibKafkaC.topic_destroy(rkt)
