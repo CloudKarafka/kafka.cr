@@ -1,30 +1,43 @@
 require "./lib_rdkafka.cr"
 
 module Kafka
-  class Producer < Client
+  class Producer
     # creates a new kafka handle using provided config.
     # Throws exception on error
-    def initialize(conf : Hash(String, String))
-      super(conf, LibKafkaC::TYPE_PRODUCER)
-      @polling = false
-      @keep_running = true
+    def initialize(config : Hash(String, String))
+      conf = LibKafkaC.conf_new
+      config.each do |k, v|
+        res = LibKafkaC.conf_set(conf, k, v, out err, 128)
+      end
       cb = ->(h : LibKafkaC::KafkaHandle, x : Void*, y : Void*) {
         puts "CB #{x}"
       }
-      LibKafkaC.conf_set_dr_msg_cb(@conf, cb)
+      LibKafkaC.conf_set_dr_msg_cb(conf, cb)
+      @handle = LibKafkaC.kafka_new(LibKafkaC::TYPE_PRODUCER, conf, out errstr, 512)
+      raise "Kafka: Unable to create new producer: #{errstr}" if @handle == 0_u64
+      @polling = false
+      @keep_running = true
     end
 
-    def produce(topic : String, key : Array(UInt8), msg : Array(UInt8))
-      produce0(topic, key, msg)
+    def producev(topic : String, msg : Message)
+      args =  {LibKafkaC::VTYPE::TOPIC, topic}
+      args += {LibKafkaC::VTYPE::VALUE, msg.payload, msg.payload.size} unless msg.payload.empty?
+      args += {LibKafkaC::VTYPE::KEY, msg.key, msg.key.size} unless msg.key.empty?
+      args += {LibKafkaC::VTYPE::PARTITION} if msg.partition != LibKafkaC::PARTITION_UNASSIGNED
+      args += {LibKafkaC::VTYPE::TIMESTAMP} if msg.timestamp
+      args += {LibKafkaC::VTYPE::END}
+      err = LibKafkaC.producev(@handle, *args)
+      raise KafkaProducerException.new(err) if err != LibKafkaC::OK
     end
 
-    def produce0(topic : String, key : Array(UInt8), msg : Array(UInt8))
+    def produce(topic : String, msg : Message)
       rkt = LibKafkaC.topic_new(@handle, topic, nil)
       part = LibKafkaC::PARTITION_UNASSIGNED
       flags = LibKafkaC::MSG_FLAG_COPY
-      err = LibKafkaC.produce(rkt, part, flags, msg, msg.size,
-                              key, key.size, nil)
+      err = LibKafkaC.produce(rkt, part, flags, msg.payload, msg.payload.size,
+                              msg.key, msg.key.size, nil)
       raise KafkaProducerException.new(err) if err != LibKafkaC::OK
+    ensure
       LibKafkaC.topic_destroy(rkt)
     end
 
@@ -39,7 +52,8 @@ module Kafka
                                 nil)
         raise KafkaProducerException.new(err) if err != LibKafkaC::OK
       end
-      LibKafkaC.poll(@handle, 500)
+      poll
+    ensure
       LibKafkaC.topic_destroy(rkt)
     end
 
@@ -47,22 +61,14 @@ module Kafka
       LibKafkaC.poll(@handle, timeout)
     end
 
-    private def start_polling
-      return if @polling
-      spawn do
-        @polling = true
-        while @keep_running
-          puts "poll"
-          LibKafkaC.poll(@handle, 500)
-          sleep 1000
-        end
-        @polling = false
-      end
-    end
-
     def flush(timeout = 1000)
       @keep_running = false
       LibKafkaC.flush(@handle, timeout)
     end
+
+    def finalize()
+      LibKafkaC.kafka_destroy(@handle)
+    end
+
   end
 end

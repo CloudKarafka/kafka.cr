@@ -27,7 +27,6 @@ lib LibKafkaC
   TYPE_CONSUMER = 1
 
   OK = 0
-  RD_KAFKA_RESP_ERR_NO_ERROR = 0
 
   MSG_FLAG_FREE = 0x1    # Delegate freeing of payload to rdkafka
   MSG_FLAG_COPY = 0x2    # rdkafka will make a copy of the payload.
@@ -36,7 +35,8 @@ lib LibKafkaC
   OFFSET_BEGINNING = -2_i64  # /**< Start consuming from beginning of
   OFFSET_END       = -1_i64  # /**< Start consuming from end of kafka
 
-
+  RespErrAssignPartitions             = -175
+  RespErrRevokePartitions             = -174
   PARTITION_UNASSIGNED = -1
 
   enum Event
@@ -60,7 +60,7 @@ lib LibKafkaC
     CREATE_TIME,
     LOG_APPEND_TIME
   end
-  
+
   struct TopicPartition
     topic: Char*
     partition: Int32
@@ -85,7 +85,22 @@ lib LibKafkaC
     orig_broker_id: Int32
     orig_broker_name: Char*
   end
-  
+
+
+  enum VTYPE
+    END = 0
+    TOPIC = 1
+    RKT = 2
+    PARTITION = 3
+    VALUE = 4
+    KEY = 5
+    OPAQUE = 6
+    MSGFLAGS = 7
+    TIMESTAMP = 8
+    HEADER = 9
+    HEADERS = 10
+  end
+    
 struct Message
   err : Int32 #rd_kafka_resp_err_t err;   /**< Non-zero for error signaling. */
   rkt : Topic #rd_kafka_topic_t *rkt;     /**< Topic */
@@ -136,6 +151,8 @@ end
   fun produce = rd_kafka_produce(topic: Topic, partition: Int32, msgflags: Int32, payload: Void*, len: LibC::SizeT,
           key: Void*, keylen: LibC::SizeT, user_callback_arg: Void* ) : Int32
 
+  fun producev = rd_kafka_producev(rk : KafkaHandle, ...  ) : Int32
+
   # returns 0 on success or -1 on error in which case errno is set accordingly:
   fun consume_start = rd_kafka_consume_start(topic: Topic, partition: Int32, offset: Int64) : Int32
 
@@ -155,7 +172,7 @@ end
   fun topic_partition_list_new = rd_kafka_topic_partition_list_new(size: Int32) : TopicPartitionList*
   fun topic_partition_list_add = rd_kafka_topic_partition_list_add(tplist: TopicPartitionList*, topic: UInt8*, partition: Int32) : Void* # TopicPartition
   fun topic_partition_list_destroy = rd_kafka_topic_partition_list_destroy(tplist: TopicPartitionList*)
-  fun assign = rd_kafka_assign(rk: KafkaHandle, topics: TopicPartitionList) : Int32
+  fun assign = rd_kafka_assign(rk: KafkaHandle, topics: TopicPartitionList*) : Int32
 
 
   fun poll = rd_kafka_poll(rk: KafkaHandle, timeout_ms: Int32) : Int32
@@ -178,4 +195,6 @@ end
   fun set_log_level = rd_kafka_set_log_level(kh: KafkaHandle, level: Int32)
 
   fun subscribe = rd_kafka_subscribe(handle: KafkaHandle, tpllist: TopicPartitionList*) : Int32
+     fun set_rebalance_cb = rd_kafka_conf_set_rebalance_cb(conf : ConfHandle,
+                                                           rebalance_cb : (KafkaHandle, Int32, TopicPartitionList*, Void* -> Void))
 end

@@ -5,13 +5,8 @@ conf = {#"debug" => "broker",
   "group.id" => "mange3"}
 
 consumer = Kafka::Consumer.new(conf)
-
-begin
-  consumer.subscribe(["yeyeyt"])
-rescue e 
-  puts e.message
-end
-consumer.each(2000) do |m|
-  puts String.new(m.payload)
+consumer.subscribe("balance", "asd", "asd2")
+consumer.each do |m|
+  puts "key=#{String.new(m.key)}, payload=#{String.new(m.payload)}"
 end
 consumer.close
