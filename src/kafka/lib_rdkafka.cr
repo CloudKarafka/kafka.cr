@@ -42,11 +42,11 @@ lib LibKafkaC
   enum Event
     NONE = 0    # None
     DR = 1             # Producer Delivery report batch
-    FETCH = 2          # Fetched message (consumer) 
-    LOG = 4            # Log message 
+    FETCH = 2          # Fetched message (consumer)
+    LOG = 4            # Log message
     ERROR = 8          # Error
-    REBALANCE = 10     # Group rebalance (consumer) 
-    OFFSET_COMMIT = 20 # Offset commit result 
+    REBALANCE = 10     # Group rebalance (consumer)
+    OFFSET_COMMIT = 20 # Offset commit result
     STATS = 40
     CREATETOPICS_RESULT = 100
     DELETETOPICS_RESULT = 101
@@ -57,7 +57,7 @@ lib LibKafkaC
 
   enum MessageTimestampType
     NOT_AVAILABLE
-    CREATE_TIME,
+    CREATE_TIME
     LOG_APPEND_TIME
   end
 
@@ -100,7 +100,7 @@ lib LibKafkaC
     HEADER = 9
     HEADERS = 10
   end
-    
+
 struct Message
   err : Int32 #rd_kafka_resp_err_t err;   /**< Non-zero for error signaling. */
   rkt : Topic #rd_kafka_topic_t *rkt;     /**< Topic */
@@ -135,7 +135,7 @@ end
                                    metadata: Metadata**,
                                    timeout: Int32) : KafkaError
   fun metadata_destroy = rd_kafka_metadata_destroy(md: Metadata*)
-        
+
   fun topic_conf_new = rd_kafka_topic_conf_new : TopicConf
   fun topic_conf_destroy = rd_kafka_topic_conf_destroy(tc : TopicConf)
   fun conf_set_default_topic_conf = rd_kafka_conf_set_default_topic_conf(conf: ConfHandle, tc: TopicConf) : Int32
@@ -187,7 +187,7 @@ end
   fun event_message_next = rd_kafka_event_message_next(qe: QueueEvent) : Message*
   fun event_topic_partition_list = rd_kafka_event_topic_partition_list(ev : QueueEvent) : TopicPartitionList*
   fun message_timestamp = rd_kafka_message_timestamp(msg: Message*, t: MessageTimestampType*) : Int64
-        
+
   fun last_error = rd_kafka_last_error() : Int32
   fun err2str = rd_kafka_err2str(code : Int32) : UInt8*
 

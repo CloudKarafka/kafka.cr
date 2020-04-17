@@ -19,18 +19,29 @@ module Kafka
       @keep_running = true
     end
 
-    def producev(topic : String, msg : Message)
-      args =  {LibKafkaC::VTYPE::TOPIC, topic}
-      args += {LibKafkaC::VTYPE::VALUE, msg.payload, msg.payload.size} unless msg.payload.empty?
-      args += {LibKafkaC::VTYPE::KEY, msg.key, msg.key.size} unless msg.key.empty?
-      args += {LibKafkaC::VTYPE::PARTITION} if msg.partition != LibKafkaC::PARTITION_UNASSIGNED
-      args += {LibKafkaC::VTYPE::TIMESTAMP} if msg.timestamp
-      args += {LibKafkaC::VTYPE::END}
-      err = LibKafkaC.producev(@handle, *args)
+    def produce(topic : String, key : Bytes,  payload : Bytes)
+      err = LibKafkaC.producev(
+        @handle,
+        LibKafkaC::VTYPE::TOPIC, topic,
+        LibKafkaC::VTYPE::VALUE, payload, payload.size,
+        LibKafkaC::VTYPE::KEY, key, key.size,
+        LibKafkaC::VTYPE::END
+      )
+      raise KafkaProducerException.new(err) if err != LibKafkaC::OK
+    end
+    def produce(topic : String, key : Bytes,  payload : Bytes, timestamp : Int64)
+      err = LibKafkaC.producev(
+        @handle,
+        LibKafkaC::VTYPE::TOPIC, topic,
+        LibKafkaC::VTYPE::VALUE, payload, payload.size,
+        LibKafkaC::VTYPE::KEY, key, key.size,
+        LibKafkaC::VTYPE::TIMESTAMP, timestamp,
+        LibKafkaC::VTYPE::END
+      )
       raise KafkaProducerException.new(err) if err != LibKafkaC::OK
     end
 
-    def produce(topic : String, msg : Message)
+    def produce0(topic : String, msg : Message)
       rkt = LibKafkaC.topic_new(@handle, topic, nil)
       part = LibKafkaC::PARTITION_UNASSIGNED
       flags = LibKafkaC::MSG_FLAG_COPY

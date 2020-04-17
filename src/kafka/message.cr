@@ -21,7 +21,7 @@ module Kafka
     @err : Error?
     @offset : Int64?
     @timestamp : Int64?
-    getter key, payload, partition, timestamp
+    getter err, offset, key, payload, partition, timestamp
 
     def initialize(@payload : Bytes, @key : Bytes)
       @partition = LibKafkaC::PARTITION_UNASSIGNED
