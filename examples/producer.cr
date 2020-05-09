@@ -24,7 +24,7 @@ while true
     "user-#{c}".to_slice,
     u.to_json.to_slice
   )
-  producer.producev("balance", m)
+  producer.produce0("balance", m)
   producer.poll
   c += 1
 end
